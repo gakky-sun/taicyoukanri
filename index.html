@@ -220,6 +220,55 @@
             margin-top: 0.25rem;
         }
 
+        .medicine-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            background-color: #fafafa;
+        }
+
+        .medicine-info {
+            flex: 1;
+        }
+
+        .medicine-name {
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
+        .medicine-timing {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .med-log-row {
+            display: flex;
+            flex-direction: column;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .med-log-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .med-log-name {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .med-log-checks {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
         .visit-actions {
             display: flex;
             align-items: center;
@@ -359,10 +408,9 @@
 
             <div class="form-group">
                 <label>服薬</label>
-                <div class="checkbox-group">
-                    <label class="checkbox-label"><input type="checkbox" id="med-morning"> 朝</label>
-                    <label class="checkbox-label"><input type="checkbox" id="med-noon"> 昼</label>
-                    <label class="checkbox-label"><input type="checkbox" id="med-night"> 夜</label>
+                <div id="medications-log-list" style="background: #fafafa; padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <!-- ここにJSで動的にチェックボックスが生成されます -->
+                    <div class="empty-state" style="padding: 0; text-align: left;">お薬が登録されていません。</div>
                 </div>
             </div>
 
@@ -430,6 +478,32 @@
                 <!-- 通院リストがここにJavaScriptで生成されます -->
             </div>
         </div>
+
+        <!-- お薬管理セクション -->
+        <div class="card">
+            <div class="card-header">お薬管理</div>
+            
+            <div style="margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color);">
+                <div class="form-group">
+                    <label for="med-name">お薬の名前</label>
+                    <input type="text" id="med-name" placeholder="例: アムロジピン">
+                </div>
+                <div class="form-group">
+                    <label for="med-timing">服用タイミング</label>
+                    <select id="med-timing">
+                        <option value="morning_noon_night">朝昼晩 (1日3回)</option>
+                        <option value="morning_night">朝晩 (1日2回)</option>
+                        <option value="once_a_day">1日1回</option>
+                        <option value="before_sleep">就寝前</option>
+                    </select>
+                </div>
+                <button id="add-med-btn" class="btn-secondary">お薬を追加</button>
+            </div>
+
+            <div id="medicines-list">
+                <!-- お薬リストがここにJavaScriptで生成されます -->
+            </div>
+        </div>
     </div>
     </div>
 
@@ -437,14 +511,17 @@
         // データ構造の初期化
         let healthRecords = JSON.parse(localStorage.getItem('healthRecords')) || {};
         let hospitalVisits = JSON.parse(localStorage.getItem('hospitalVisits')) || [];
+        let medicines = JSON.parse(localStorage.getItem('medicines')) || [];
 
         // 要素の取得
         const recordDateInput = document.getElementById('record-date');
         const conditionRadios = document.getElementsByName('condition');
         const moodRadios = document.getElementsByName('mood');
-        const medMorning = document.getElementById('med-morning');
-        const medNoon = document.getElementById('med-noon');
-        const medNight = document.getElementById('med-night');
+        const medicationsLogList = document.getElementById('medications-log-list');
+        const medNameInput = document.getElementById('med-name');
+        const medTimingSelect = document.getElementById('med-timing');
+        const addMedBtn = document.getElementById('add-med-btn');
+        const medicinesListContainer = document.getElementById('medicines-list');
         const mealMorning = document.getElementById('meal-morning');
         const mealNoon = document.getElementById('meal-noon');
         const mealNight = document.getElementById('meal-night');
@@ -483,29 +560,36 @@
 
         // 特定の日の記録をフォームに読み込む
         function loadRecordForDate(date) {
-            const record = healthRecords[date];
-            if (record) {
-                setRadioValue('condition', record.condition || '普通');
-                setRadioValue('mood', record.mood || '普通');
-                medMorning.checked = record.medication?.morning || false;
-                medNoon.checked = record.medication?.noon || false;
-                medNight.checked = record.medication?.night || false;
-                mealMorning.value = record.meals?.morning || '100%';
-                mealNoon.value = record.meals?.noon || '100%';
-                mealNight.value = record.meals?.night || '100%';
-                notesInput.value = record.notes || '';
-            } else {
-                // 記録がない場合はリセット
-                setRadioValue('condition', '普通');
-                setRadioValue('mood', '普通');
-                medMorning.checked = false;
-                medNoon.checked = false;
-                medNight.checked = false;
-                mealMorning.value = '100%';
-                mealNoon.value = '100%';
-                mealNight.value = '100%';
-                notesInput.value = '';
-            }
+            const record = healthRecords[date] || {};
+            
+            setRadioValue('condition', record.condition || '普通');
+            setRadioValue('mood', record.mood || '普通');
+            mealMorning.value = record.meals?.morning || '100%';
+            mealNoon.value = record.meals?.noon || '100%';
+            mealNight.value = record.meals?.night || '100%';
+            notesInput.value = record.notes || '';
+
+            // 服薬記録の復元
+            const medRecord = record.medications || {};
+            medicines.forEach(med => {
+                const medData = medRecord[med.id] || {};
+                if (med.timing === 'morning_noon_night') {
+                    const chkM = document.getElementById(`log-med-${med.id}-morning`);
+                    const chkN = document.getElementById(`log-med-${med.id}-noon`);
+                    const chkNi = document.getElementById(`log-med-${med.id}-night`);
+                    if(chkM) chkM.checked = medData.morning || false;
+                    if(chkN) chkN.checked = medData.noon || false;
+                    if(chkNi) chkNi.checked = medData.night || false;
+                } else if (med.timing === 'morning_night') {
+                    const chkM = document.getElementById(`log-med-${med.id}-morning`);
+                    const chkNi = document.getElementById(`log-med-${med.id}-night`);
+                    if(chkM) chkM.checked = medData.morning || false;
+                    if(chkNi) chkNi.checked = medData.night || false;
+                } else if (med.timing === 'once_a_day' || med.timing === 'before_sleep') {
+                    const chkD = document.getElementById(`log-med-${med.id}-done`);
+                    if(chkD) chkD.checked = medData.done || false;
+                }
+            });
         }
 
         // 日付が変更されたら記録を読み込む
@@ -524,11 +608,28 @@
             const record = {
                 condition: getRadioValue('condition'),
                 mood: getRadioValue('mood'),
-                medication: {
-                    morning: medMorning.checked,
-                    noon: medNoon.checked,
-                    night: medNight.checked
-                },
+                medications: (function() {
+                    const m = {};
+                    medicines.forEach(med => {
+                        if (med.timing === 'morning_noon_night') {
+                            m[med.id] = {
+                                morning: document.getElementById(`log-med-${med.id}-morning`)?.checked || false,
+                                noon: document.getElementById(`log-med-${med.id}-noon`)?.checked || false,
+                                night: document.getElementById(`log-med-${med.id}-night`)?.checked || false
+                            };
+                        } else if (med.timing === 'morning_night') {
+                            m[med.id] = {
+                                morning: document.getElementById(`log-med-${med.id}-morning`)?.checked || false,
+                                night: document.getElementById(`log-med-${med.id}-night`)?.checked || false
+                            };
+                        } else if (med.timing === 'once_a_day' || med.timing === 'before_sleep') {
+                            m[med.id] = {
+                                done: document.getElementById(`log-med-${med.id}-done`)?.checked || false
+                            };
+                        }
+                    });
+                    return m;
+                })(),
                 meals: {
                     morning: mealMorning.value,
                     noon: mealNoon.value,
@@ -644,6 +745,104 @@
             visitClinicInput.value = '';
         });
 
+        // --- お薬管理機能 ---
+
+        const timingLabels = {
+            'morning_noon_night': '朝昼晩 (1日3回)',
+            'morning_night': '朝晩 (1日2回)',
+            'once_a_day': '1日1回',
+            'before_sleep': '就寝前'
+        };
+
+        function renderMedicines() {
+            medicinesListContainer.innerHTML = '';
+            
+            if (medicines.length === 0) {
+                medicinesListContainer.innerHTML = '<div class="empty-state">登録されているお薬はありません。</div>';
+            } else {
+                medicines.forEach(med => {
+                    const el = document.createElement('div');
+                    el.className = 'medicine-item';
+                    el.innerHTML = `
+                        <div class="medicine-info">
+                            <div class="medicine-name">${med.name}</div>
+                            <div class="medicine-timing">${timingLabels[med.timing]}</div>
+                        </div>
+                        <button class="btn-danger" onclick="deleteMedicine('${med.id}')">削除</button>
+                    `;
+                    medicinesListContainer.appendChild(el);
+                });
+            }
+            renderMedicationsLogForm();
+        }
+
+        window.deleteMedicine = function(id) {
+            if (confirm('このお薬を削除してもよろしいですか？')) {
+                medicines = medicines.filter(m => m.id !== id);
+                localStorage.setItem('medicines', JSON.stringify(medicines));
+                renderMedicines();
+                loadRecordForDate(recordDateInput.value);
+            }
+        };
+
+        addMedBtn.addEventListener('click', () => {
+            const name = medNameInput.value.trim();
+            const timing = medTimingSelect.value;
+            if (!name) {
+                alert('お薬の名前を入力してください。');
+                return;
+            }
+            medicines.push({
+                id: Date.now().toString(),
+                name: name,
+                timing: timing
+            });
+            localStorage.setItem('medicines', JSON.stringify(medicines));
+            medNameInput.value = '';
+            renderMedicines();
+            loadRecordForDate(recordDateInput.value);
+        });
+
+        function renderMedicationsLogForm() {
+            medicationsLogList.innerHTML = '';
+            if (medicines.length === 0) {
+                medicationsLogList.innerHTML = '<div class="empty-state" style="padding: 0; text-align: left;">お薬が登録されていません。<br>下部の「お薬管理」から追加してください。</div>';
+                return;
+            }
+            medicines.forEach(med => {
+                const row = document.createElement('div');
+                row.className = 'med-log-row';
+                
+                let checksHtml = '';
+                if (med.timing === 'morning_noon_night') {
+                    checksHtml = `
+                        <label class="checkbox-label"><input type="checkbox" id="log-med-${med.id}-morning"> 朝</label>
+                        <label class="checkbox-label"><input type="checkbox" id="log-med-${med.id}-noon"> 昼</label>
+                        <label class="checkbox-label"><input type="checkbox" id="log-med-${med.id}-night"> 晩</label>
+                    `;
+                } else if (med.timing === 'morning_night') {
+                    checksHtml = `
+                        <label class="checkbox-label"><input type="checkbox" id="log-med-${med.id}-morning"> 朝</label>
+                        <label class="checkbox-label"><input type="checkbox" id="log-med-${med.id}-night"> 晩</label>
+                    `;
+                } else if (med.timing === 'once_a_day') {
+                    checksHtml = `
+                        <label class="checkbox-label"><input type="checkbox" id="log-med-${med.id}-done"> 服用済</label>
+                    `;
+                } else if (med.timing === 'before_sleep') {
+                    checksHtml = `
+                        <label class="checkbox-label"><input type="checkbox" id="log-med-${med.id}-done"> 服用済 (就寝前)</label>
+                    `;
+                }
+
+                row.innerHTML = `
+                    <div class="med-log-name">${med.name} <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">(${timingLabels[med.timing]})</span></div>
+                    <div class="med-log-checks">${checksHtml}</div>
+                `;
+                medicationsLogList.appendChild(row);
+            });
+        }
+
         // --- ログイン処理 ---
         const loginScreen = document.getElementById('login-screen');
         const appContent = document.getElementById('app-content');
@@ -660,6 +859,7 @@
                 loginScreen.style.display = 'none';
                 appContent.style.display = 'block';
                 // ログイン後にデータを再読み込み
+                renderMedicines();
                 loadRecordForDate(recordDateInput.value);
                 renderVisits();
             } else {
