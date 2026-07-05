@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高齢者見守りダッシュボード</title>
+    <style>
+        :root {
+            --primary-color: #4CAF50;
+            --primary-hover: #45a049;
+            --secondary-color: #2196F3;
+            --danger-color: #f44336;
+            --background-color: #f0f4f8;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --text-muted: #666666;
+            --border-color: #e0e0e0;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --border-radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-main);
+            line-height: 1.6;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem 2rem;
+            text-align: center;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 1rem;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+
+        @media (min-width: 768px) {
+            .container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .card-header {
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--background-color);
+            color: var(--primary-color);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        input[type="date"],
+        input[type="text"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .radio-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-weight: normal;
+        }
+
+        .radio-label input {
+            margin-right: 0.5rem;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-weight: normal;
+        }
+
+        .checkbox-label input {
+            margin-right: 0.5rem;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+            font-weight: bold;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+        }
+        
+        .btn-secondary:hover {
+            background-color: #1976D2;
+        }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+            padding: 0.4rem 0.8rem;
+            font-size: 0.9rem;
+            width: auto;
+        }
+
+        .btn-danger:hover {
+            background-color: #d32f2f;
+        }
+
+        .notification {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            text-align: center;
+            display: none;
+            font-weight: bold;
+        }
+
+        .visit-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            background-color: #fafafa;
+        }
+
+        .visit-info {
+            flex: 1;
+        }
+
+        .visit-date {
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
+        .visit-clinic {
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .visit-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .status-scheduled { background-color: #fff3e0; color: #e65100; }
+        .status-completed { background-color: #e8f5e9; color: #2e7d32; }
+        .status-cancelled { background-color: #ffebee; color: #c62828; }
+
+        .empty-state {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 2rem 0;
+            font-style: italic;
+        }
+
+        #login-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: var(--background-color);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        #login-card {
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        #login-card h2 {
+            margin-bottom: 1.5rem;
+            color: var(--primary-color);
+        }
+
+        #app-content {
+            display: none;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .btn-logout {
+            background-color: transparent;
+            border: 1px solid white;
+            color: white;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            width: auto;
+            transition: background-color 0.3s;
+        }
+
+        .btn-logout:hover {
+            background-color: rgba(255,255,255,0.2);
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- ログイン画面 -->
+    <div id="login-screen">
+        <div id="login-card">
+            <h2>ログイン</h2>
+            <div class="form-group" style="text-align: left;">
+                <label for="pin-code">PINコード (デフォルト: 1234)</label>
+                <input type="password" id="pin-code" placeholder="PINを入力">
+            </div>
+            <div id="login-error" style="color: var(--danger-color); font-size: 0.9rem; margin-bottom: 1rem; display: none;">PINコードが間違っています。</div>
+            <button id="login-btn">ログイン</button>
+        </div>
+    </div>
+
+    <!-- アプリのメインコンテンツ -->
+    <div id="app-content">
+        <header>
+            <div class="header-content">
+                <h1>高齢者見守りダッシュボード</h1>
+                <button id="logout-btn" class="btn-logout">ログアウト</button>
+            </div>
+        </header>
+
+        <div class="container">
+        <!-- 日次健康記録セクション -->
+        <div class="card">
+            <div class="card-header">日次健康記録</div>
+            
+            <div id="health-notification" class="notification">保存しました</div>
+
+            <div class="form-group">
+                <label for="record-date">記録日</label>
+                <input type="date" id="record-date">
+            </div>
+
+            <div class="form-group">
+                <label>体調</label>
+                <div class="radio-group">
+                    <label class="radio-label"><input type="radio" name="condition" value="良い"> 良い</label>
+                    <label class="radio-label"><input type="radio" name="condition" value="普通" checked> 普通</label>
+                    <label class="radio-label"><input type="radio" name="condition" value="悪い"> 悪い</label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>機嫌</label>
+                <div class="radio-group">
+                    <label class="radio-label"><input type="radio" name="mood" value="良い"> 良い</label>
+                    <label class="radio-label"><input type="radio" name="mood" value="普通" checked> 普通</label>
+                    <label class="radio-label"><input type="radio" name="mood" value="悪い"> 悪い</label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>服薬</label>
+                <div class="checkbox-group">
+                    <label class="checkbox-label"><input type="checkbox" id="med-morning"> 朝</label>
+                    <label class="checkbox-label"><input type="checkbox" id="med-noon"> 昼</label>
+                    <label class="checkbox-label"><input type="checkbox" id="med-night"> 夜</label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>食事の摂取量</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;">
+                    <div>
+                        <small>朝食</small>
+                        <select id="meal-morning">
+                            <option value="100%">100%</option>
+                            <option value="70%">70%</option>
+                            <option value="50%">50%</option>
+                            <option value="30%">30%</option>
+                            <option value="0%">0%</option>
+                        </select>
+                    </div>
+                    <div>
+                        <small>昼食</small>
+                        <select id="meal-noon">
+                            <option value="100%">100%</option>
+                            <option value="70%">70%</option>
+                            <option value="50%">50%</option>
+                            <option value="30%">30%</option>
+                            <option value="0%">0%</option>
+                        </select>
+                    </div>
+                    <div>
+                        <small>夕食</small>
+                        <select id="meal-night">
+                            <option value="100%">100%</option>
+                            <option value="70%">70%</option>
+                            <option value="50%">50%</option>
+                            <option value="30%">30%</option>
+                            <option value="0%">0%</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="notes">デイサービス / 特記事項</label>
+                <textarea id="notes" placeholder="日中の様子や特記事項を入力してください..."></textarea>
+            </div>
+
+            <button id="save-health-btn">記録を保存</button>
+        </div>
+
+        <!-- 通院管理セクション -->
+        <div class="card">
+            <div class="card-header">通院管理</div>
+            
+            <div style="margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color);">
+                <div class="form-group">
+                    <label for="visit-date">通院日</label>
+                    <input type="date" id="visit-date">
+                </div>
+                <div class="form-group">
+                    <label for="visit-clinic">通院先 (病院名・科)</label>
+                    <input type="text" id="visit-clinic" placeholder="例: 〇〇病院 内科">
+                </div>
+                <button id="add-visit-btn" class="btn-secondary">予定を追加</button>
+            </div>
+
+            <div id="visits-list">
+                <!-- 通院リストがここにJavaScriptで生成されます -->
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <script>
+        // データ構造の初期化
+        let healthRecords = JSON.parse(localStorage.getItem('healthRecords')) || {};
+        let hospitalVisits = JSON.parse(localStorage.getItem('hospitalVisits')) || [];
+
+        // 要素の取得
+        const recordDateInput = document.getElementById('record-date');
+        const conditionRadios = document.getElementsByName('condition');
+        const moodRadios = document.getElementsByName('mood');
+        const medMorning = document.getElementById('med-morning');
+        const medNoon = document.getElementById('med-noon');
+        const medNight = document.getElementById('med-night');
+        const mealMorning = document.getElementById('meal-morning');
+        const mealNoon = document.getElementById('meal-noon');
+        const mealNight = document.getElementById('meal-night');
+        const notesInput = document.getElementById('notes');
+        const saveHealthBtn = document.getElementById('save-health-btn');
+        const healthNotification = document.getElementById('health-notification');
+
+        const visitDateInput = document.getElementById('visit-date');
+        const visitClinicInput = document.getElementById('visit-clinic');
+        const addVisitBtn = document.getElementById('add-visit-btn');
+        const visitsListContainer = document.getElementById('visits-list');
+
+        // 今日の日付をセット
+        const today = new Date().toISOString().split('T')[0];
+        recordDateInput.value = today;
+        visitDateInput.value = today;
+
+        // --- 日次健康記録機能 ---
+
+        // ラジオボタンの値を設定するヘルパー関数
+        function setRadioValue(name, value) {
+            const radios = document.getElementsByName(name);
+            for (let radio of radios) {
+                radio.checked = (radio.value === value);
+            }
+        }
+
+        // ラジオボタンの値を取得するヘルパー関数
+        function getRadioValue(name) {
+            const radios = document.getElementsByName(name);
+            for (let radio of radios) {
+                if (radio.checked) return radio.value;
+            }
+            return '';
+        }
+
+        // 特定の日の記録をフォームに読み込む
+        function loadRecordForDate(date) {
+            const record = healthRecords[date];
+            if (record) {
+                setRadioValue('condition', record.condition || '普通');
+                setRadioValue('mood', record.mood || '普通');
+                medMorning.checked = record.medication?.morning || false;
+                medNoon.checked = record.medication?.noon || false;
+                medNight.checked = record.medication?.night || false;
+                mealMorning.value = record.meals?.morning || '100%';
+                mealNoon.value = record.meals?.noon || '100%';
+                mealNight.value = record.meals?.night || '100%';
+                notesInput.value = record.notes || '';
+            } else {
+                // 記録がない場合はリセット
+                setRadioValue('condition', '普通');
+                setRadioValue('mood', '普通');
+                medMorning.checked = false;
+                medNoon.checked = false;
+                medNight.checked = false;
+                mealMorning.value = '100%';
+                mealNoon.value = '100%';
+                mealNight.value = '100%';
+                notesInput.value = '';
+            }
+        }
+
+        // 日付が変更されたら記録を読み込む
+        recordDateInput.addEventListener('change', (e) => {
+            loadRecordForDate(e.target.value);
+        });
+
+        // 記録を保存する
+        saveHealthBtn.addEventListener('click', () => {
+            const date = recordDateInput.value;
+            if (!date) {
+                alert('記録日を選択してください。');
+                return;
+            }
+
+            const record = {
+                condition: getRadioValue('condition'),
+                mood: getRadioValue('mood'),
+                medication: {
+                    morning: medMorning.checked,
+                    noon: medNoon.checked,
+                    night: medNight.checked
+                },
+                meals: {
+                    morning: mealMorning.value,
+                    noon: mealNoon.value,
+                    night: mealNight.value
+                },
+                notes: notesInput.value,
+                updatedAt: new Date().toISOString()
+            };
+
+            healthRecords[date] = record;
+            localStorage.setItem('healthRecords', JSON.stringify(healthRecords));
+
+            // 通知を表示
+            healthNotification.style.display = 'block';
+            setTimeout(() => {
+                healthNotification.style.display = 'none';
+            }, 3000);
+        });
+
+        // --- 通院管理機能 ---
+
+        // 通院予定を描画する
+        function renderVisits() {
+            visitsListContainer.innerHTML = '';
+
+            if (hospitalVisits.length === 0) {
+                visitsListContainer.innerHTML = '<div class="empty-state">予定されている通院はありません。</div>';
+                return;
+            }
+
+            // 日付順にソート（新しいものが上、未完了を優先するなどカスタマイズ可能ですが今回は日付順）
+            const sortedVisits = [...hospitalVisits].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            sortedVisits.forEach((visit) => {
+                const visitEl = document.createElement('div');
+                visitEl.className = 'visit-item';
+
+                // ステータスに応じたクラス名とテキスト
+                let statusClass = 'status-scheduled';
+                let statusText = '予定';
+                if (visit.status === 'completed') {
+                    statusClass = 'status-completed';
+                    statusText = '完了';
+                } else if (visit.status === 'cancelled') {
+                    statusClass = 'status-cancelled';
+                    statusText = 'キャンセル';
+                }
+
+                visitEl.innerHTML = `
+                    <div class="visit-info">
+                        <div class="visit-date">${visit.date} <span class="status-badge ${statusClass}">${statusText}</span></div>
+                        <div class="visit-clinic">${visit.clinic}</div>
+                    </div>
+                    <div class="visit-actions">
+                        <select onchange="updateVisitStatus('${visit.id}', this.value)" style="width: auto; padding: 0.4rem; font-size: 0.9rem;">
+                            <option value="scheduled" ${visit.status === 'scheduled' ? 'selected' : ''}>予定</option>
+                            <option value="completed" ${visit.status === 'completed' ? 'selected' : ''}>完了</option>
+                            <option value="cancelled" ${visit.status === 'cancelled' ? 'selected' : ''}>キャンセル</option>
+                        </select>
+                        <button class="btn-danger" onclick="deleteVisit('${visit.id}')">削除</button>
+                    </div>
+                `;
+                visitsListContainer.appendChild(visitEl);
+            });
+        }
+
+        // ステータス更新（グローバル関数として定義）
+        window.updateVisitStatus = function(id, newStatus) {
+            const visit = hospitalVisits.find(v => v.id === id);
+            if (visit) {
+                visit.status = newStatus;
+                saveVisits();
+                renderVisits();
+            }
+        };
+
+        // 削除（グローバル関数として定義）
+        window.deleteVisit = function(id) {
+            if (confirm('この予定を削除してもよろしいですか？')) {
+                hospitalVisits = hospitalVisits.filter(v => v.id !== id);
+                saveVisits();
+                renderVisits();
+            }
+        };
+
+        // ローカルストレージに保存するヘルパー
+        function saveVisits() {
+            localStorage.setItem('hospitalVisits', JSON.stringify(hospitalVisits));
+        }
+
+        // 新しい予定を追加
+        addVisitBtn.addEventListener('click', () => {
+            const date = visitDateInput.value;
+            const clinic = visitClinicInput.value.trim();
+
+            if (!date || !clinic) {
+                alert('通院日と通院先を入力してください。');
+                return;
+            }
+
+            const newVisit = {
+                id: Date.now().toString(),
+                date: date,
+                clinic: clinic,
+                status: 'scheduled' // 'scheduled', 'completed', 'cancelled'
+            };
+
+            hospitalVisits.push(newVisit);
+            saveVisits();
+            renderVisits();
+
+            // フォームをリセット
+            visitClinicInput.value = '';
+        });
+
+        // --- ログイン処理 ---
+        const loginScreen = document.getElementById('login-screen');
+        const appContent = document.getElementById('app-content');
+        const pinCodeInput = document.getElementById('pin-code');
+        const loginBtn = document.getElementById('login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const loginError = document.getElementById('login-error');
+
+        // デフォルトのPINコード
+        const CORRECT_PIN = '1234';
+
+        function checkLoginState() {
+            if (localStorage.getItem('isLoggedIn') === 'true') {
+                loginScreen.style.display = 'none';
+                appContent.style.display = 'block';
+                // ログイン後にデータを再読み込み
+                loadRecordForDate(recordDateInput.value);
+                renderVisits();
+            } else {
+                loginScreen.style.display = 'flex';
+                appContent.style.display = 'none';
+            }
+        }
+
+        loginBtn.addEventListener('click', () => {
+            if (pinCodeInput.value === CORRECT_PIN) {
+                localStorage.setItem('isLoggedIn', 'true');
+                loginError.style.display = 'none';
+                pinCodeInput.value = '';
+                checkLoginState();
+            } else {
+                loginError.style.display = 'block';
+            }
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            if (confirm('ログアウトしますか？')) {
+                localStorage.removeItem('isLoggedIn');
+                checkLoginState();
+            }
+        });
+
+        pinCodeInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                loginBtn.click();
+            }
+        });
+
+        // 初期化処理
+        checkLoginState();
+
+    </script>
+</body>
+</html>
