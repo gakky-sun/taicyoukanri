@@ -390,7 +390,9 @@
 
             <div class="form-group">
                 <label for="record-user">入力者名</label>
-                <input type="text" id="record-user" placeholder="例: 山田太郎">
+                <select id="record-user">
+                    <option value="">選択してください</option>
+                </select>
             </div>
 
             <div class="form-group">
@@ -518,6 +520,23 @@
             </div>
         </div>
 
+        <!-- 入力者管理セクション -->
+        <div class="card">
+            <div class="card-header">入力者管理</div>
+            
+            <div style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color);">
+                <div class="form-group">
+                    <label for="new-user-name">入力者の名前</label>
+                    <input type="text" id="new-user-name" placeholder="例: 山田太郎">
+                </div>
+                <button id="add-user-btn" class="btn-secondary">追加</button>
+            </div>
+
+            <div id="users-list">
+                <!-- 登録された入力者がここに表示されます -->
+            </div>
+        </div>
+
         <!-- 健康記録履歴セクション -->
         <div class="card">
             <div class="card-header">健康記録履歴</div>
@@ -533,6 +552,7 @@
         let healthRecords = JSON.parse(localStorage.getItem('healthRecords')) || {};
         let hospitalVisits = JSON.parse(localStorage.getItem('hospitalVisits')) || [];
         let medicines = JSON.parse(localStorage.getItem('medicines')) || [];
+        let users = JSON.parse(localStorage.getItem('users')) || [];
 
         // 要素の取得
         const recordDatetimeInput = document.getElementById('record-datetime');
@@ -546,6 +566,9 @@
         const medTimingSelect = document.getElementById('med-timing');
         const addMedBtn = document.getElementById('add-med-btn');
         const medicinesListContainer = document.getElementById('medicines-list');
+        const newUserInput = document.getElementById('new-user-name');
+        const addUserBtn = document.getElementById('add-user-btn');
+        const usersListContainer = document.getElementById('users-list');
         const mealMorning = document.getElementById('meal-morning');
         const mealMorningContent = document.getElementById('meal-content-morning');
         const mealNoon = document.getElementById('meal-noon');
@@ -598,7 +621,15 @@
         function loadRecordForDatetime(datetimeKey) {
             const record = healthRecords[datetimeKey] || {};
             
-            recordUserInput.value = record.user || '';
+            renderUserOptions();
+            const savedUser = record.user || '';
+            if (savedUser && !users.some(u => u.name === savedUser)) {
+                let tempOption = document.createElement('option');
+                tempOption.value = savedUser;
+                tempOption.text = savedUser + ' (未登録)';
+                recordUserInput.appendChild(tempOption);
+            }
+            recordUserInput.value = savedUser;
             setRadioValue('condition', record.condition || '普通');
             if ((record.condition || '普通') === '悪い') {
                 symptomsGroup.style.display = 'block';
@@ -954,6 +985,66 @@
             medicationsLogList.innerHTML = html;
         }
 
+        // --- 入力者管理機能 ---
+        function renderUserOptions() {
+            recordUserInput.innerHTML = '<option value="">選択してください</option>';
+            users.forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u.name;
+                opt.text = u.name;
+                recordUserInput.appendChild(opt);
+            });
+        }
+
+        function renderUsers() {
+            usersListContainer.innerHTML = '';
+            if (users.length === 0) {
+                usersListContainer.innerHTML = '<div class="empty-state">登録されている入力者はいません。</div>';
+            } else {
+                users.forEach(u => {
+                    const el = document.createElement('div');
+                    el.className = 'medicine-item';
+                    el.innerHTML = `
+                        <div class="medicine-info">
+                            <div class="medicine-name">${u.name}</div>
+                        </div>
+                        <button class="btn-danger" onclick="deleteUser('${u.id}')">削除</button>
+                    `;
+                    usersListContainer.appendChild(el);
+                });
+            }
+            renderUserOptions();
+        }
+
+        window.deleteUser = function(id) {
+            if (confirm('この入力者を削除してもよろしいですか？')) {
+                users = users.filter(u => u.id !== id);
+                localStorage.setItem('users', JSON.stringify(users));
+                renderUsers();
+                loadRecordForDatetime(recordDatetimeInput.value);
+            }
+        };
+
+        addUserBtn.addEventListener('click', () => {
+            const name = newUserInput.value.trim();
+            if (!name) {
+                alert('入力者の名前を入力してください。');
+                return;
+            }
+            if (users.some(u => u.name === name)) {
+                alert('既に登録されています。');
+                return;
+            }
+            users.push({
+                id: Date.now().toString(),
+                name: name
+            });
+            localStorage.setItem('users', JSON.stringify(users));
+            newUserInput.value = '';
+            renderUsers();
+            loadRecordForDatetime(recordDatetimeInput.value);
+        });
+
         // --- ログイン処理 ---
         const loginScreen = document.getElementById('login-screen');
         const appContent = document.getElementById('app-content');
@@ -970,6 +1061,7 @@
                 loginScreen.style.display = 'none';
                 appContent.style.display = 'block';
                 // ログイン後にデータを再読み込み
+                renderUsers();
                 renderMedicines();
                 loadRecordForDatetime(recordDatetimeInput.value);
                 renderVisits();
