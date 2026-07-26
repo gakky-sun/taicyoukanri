@@ -381,7 +381,7 @@
         <div class="card">
             <div class="card-header">日次健康記録</div>
             
-            <div id="health-notification" class="notification">保存しました</div>
+            <div id="health-notification" class="notification">保存しました。</div>
 
             <div class="form-group">
                 <label for="record-date">記録日</label>
@@ -673,6 +673,9 @@
             setTimeout(() => {
                 healthNotification.style.display = 'none';
             }, 3000);
+            
+            // ダイアログでも通知
+            alert('保存しました。');
         });
 
         // --- 通院管理機能 ---
