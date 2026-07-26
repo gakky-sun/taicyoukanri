@@ -397,6 +397,11 @@
                 </div>
             </div>
 
+            <div class="form-group" id="symptoms-group" style="display: none; background-color: #ffebee; padding: 1rem; border-radius: 8px; margin-top: 0.5rem;">
+                <label for="symptoms" style="color: #c62828;">症状の詳細 (発熱、風邪症状など)</label>
+                <textarea id="symptoms" placeholder="具体的な症状を入力してください..."></textarea>
+            </div>
+
             <div class="form-group">
                 <label>機嫌</label>
                 <div class="radio-group">
@@ -517,6 +522,8 @@
         const recordDateInput = document.getElementById('record-date');
         const conditionRadios = document.getElementsByName('condition');
         const moodRadios = document.getElementsByName('mood');
+        const symptomsGroup = document.getElementById('symptoms-group');
+        const symptomsInput = document.getElementById('symptoms');
         const medicationsLogList = document.getElementById('medications-log-list');
         const medNameInput = document.getElementById('med-name');
         const medTimingSelect = document.getElementById('med-timing');
@@ -563,6 +570,13 @@
             const record = healthRecords[date] || {};
             
             setRadioValue('condition', record.condition || '普通');
+            if ((record.condition || '普通') === '悪い') {
+                symptomsGroup.style.display = 'block';
+            } else {
+                symptomsGroup.style.display = 'none';
+            }
+            symptomsInput.value = record.symptoms || '';
+
             setRadioValue('mood', record.mood || '普通');
             mealMorning.value = record.meals?.morning || '100%';
             mealNoon.value = record.meals?.noon || '100%';
@@ -597,6 +611,17 @@
             loadRecordForDate(e.target.value);
         });
 
+        // 体調ラジオボタンの変更検知
+        conditionRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (e.target.value === '悪い') {
+                    symptomsGroup.style.display = 'block';
+                } else {
+                    symptomsGroup.style.display = 'none';
+                }
+            });
+        });
+
         // 記録を保存する
         saveHealthBtn.addEventListener('click', () => {
             const date = recordDateInput.value;
@@ -607,6 +632,7 @@
 
             const record = {
                 condition: getRadioValue('condition'),
+                symptoms: getRadioValue('condition') === '悪い' ? symptomsInput.value : '',
                 mood: getRadioValue('mood'),
                 medications: (function() {
                     const m = {};
