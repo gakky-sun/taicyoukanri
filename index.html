@@ -477,8 +477,8 @@
             
             <div style="margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color);">
                 <div class="form-group">
-                    <label for="visit-date">通院日</label>
-                    <input type="date" id="visit-date">
+                    <label for="visit-datetime">通院日時</label>
+                    <input type="datetime-local" id="visit-datetime">
                 </div>
                 <div class="form-group">
                     <label for="visit-clinic">通院先 (病院名・科)</label>
@@ -556,7 +556,7 @@
         const saveHealthBtn = document.getElementById('save-health-btn');
         const healthNotification = document.getElementById('health-notification');
 
-        const visitDateInput = document.getElementById('visit-date');
+        const visitDatetimeInput = document.getElementById('visit-datetime');
         const visitClinicInput = document.getElementById('visit-clinic');
         const addVisitBtn = document.getElementById('add-visit-btn');
         const visitsListContainer = document.getElementById('visits-list');
@@ -573,7 +573,7 @@
         const today = `${year}-${month}-${day}`;
         
         recordDatetimeInput.value = currentDatetime;
-        visitDateInput.value = today;
+        visitDatetimeInput.value = currentDatetime;
 
         // --- 健康管理機能 ---
 
@@ -799,7 +799,7 @@
 
                 visitEl.innerHTML = `
                     <div class="visit-info">
-                        <div class="visit-date">${visit.date} <span class="status-badge ${statusClass}">${statusText}</span></div>
+                        <div class="visit-date">${visit.date.replace('T', ' ')} <span class="status-badge ${statusClass}">${statusText}</span></div>
                         <div class="visit-clinic">${visit.clinic}</div>
                     </div>
                     <div class="visit-actions">
@@ -839,13 +839,12 @@
             localStorage.setItem('hospitalVisits', JSON.stringify(hospitalVisits));
         }
 
-        // 新しい予定を追加
         addVisitBtn.addEventListener('click', () => {
-            const date = visitDateInput.value;
+            const date = visitDatetimeInput.value;
             const clinic = visitClinicInput.value.trim();
 
             if (!date || !clinic) {
-                alert('通院日と通院先を入力してください。');
+                alert('通院日時と通院先を入力してください。');
                 return;
             }
 
