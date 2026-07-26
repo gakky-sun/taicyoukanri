@@ -377,15 +377,20 @@
         </header>
 
         <div class="container">
-        <!-- 日次健康記録セクション -->
+        <!-- 健康管理セクション -->
         <div class="card">
-            <div class="card-header">日次健康記録</div>
+            <div class="card-header">健康管理</div>
             
             <div id="health-notification" class="notification">保存しました。</div>
 
             <div class="form-group">
-                <label for="record-date">記録日</label>
-                <input type="date" id="record-date">
+                <label for="record-datetime">記録日時</label>
+                <input type="datetime-local" id="record-datetime">
+            </div>
+
+            <div class="form-group">
+                <label for="record-user">入力者名</label>
+                <input type="text" id="record-user" placeholder="例: 山田太郎">
             </div>
 
             <div class="form-group">
@@ -431,6 +436,7 @@
                             <option value="30%">30%</option>
                             <option value="0%">0%</option>
                         </select>
+                        <input type="text" id="meal-content-morning" placeholder="食事内容" style="margin-top: 0.5rem; font-size: 0.9rem; padding: 0.5rem;">
                     </div>
                     <div>
                         <small>昼食</small>
@@ -441,6 +447,7 @@
                             <option value="30%">30%</option>
                             <option value="0%">0%</option>
                         </select>
+                        <input type="text" id="meal-content-noon" placeholder="食事内容" style="margin-top: 0.5rem; font-size: 0.9rem; padding: 0.5rem;">
                     </div>
                     <div>
                         <small>夕食</small>
@@ -451,6 +458,7 @@
                             <option value="30%">30%</option>
                             <option value="0%">0%</option>
                         </select>
+                        <input type="text" id="meal-content-night" placeholder="食事内容" style="margin-top: 0.5rem; font-size: 0.9rem; padding: 0.5rem;">
                     </div>
                 </div>
             </div>
@@ -527,7 +535,8 @@
         let medicines = JSON.parse(localStorage.getItem('medicines')) || [];
 
         // 要素の取得
-        const recordDateInput = document.getElementById('record-date');
+        const recordDatetimeInput = document.getElementById('record-datetime');
+        const recordUserInput = document.getElementById('record-user');
         const conditionRadios = document.getElementsByName('condition');
         const moodRadios = document.getElementsByName('mood');
         const symptomsGroup = document.getElementById('symptoms-group');
@@ -538,8 +547,11 @@
         const addMedBtn = document.getElementById('add-med-btn');
         const medicinesListContainer = document.getElementById('medicines-list');
         const mealMorning = document.getElementById('meal-morning');
+        const mealMorningContent = document.getElementById('meal-content-morning');
         const mealNoon = document.getElementById('meal-noon');
+        const mealNoonContent = document.getElementById('meal-content-noon');
         const mealNight = document.getElementById('meal-night');
+        const mealNightContent = document.getElementById('meal-content-night');
         const notesInput = document.getElementById('notes');
         const saveHealthBtn = document.getElementById('save-health-btn');
         const healthNotification = document.getElementById('health-notification');
@@ -550,12 +562,20 @@
         const visitsListContainer = document.getElementById('visits-list');
         const historyListContainer = document.getElementById('history-list');
 
-        // 今日の日付をセット
-        const today = new Date().toISOString().split('T')[0];
-        recordDateInput.value = today;
+        // 今日の日時をセット
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const currentDatetime = `${year}-${month}-${day}T${hours}:${minutes}`;
+        const today = `${year}-${month}-${day}`;
+        
+        recordDatetimeInput.value = currentDatetime;
         visitDateInput.value = today;
 
-        // --- 日次健康記録機能 ---
+        // --- 健康管理機能 ---
 
         // ラジオボタンの値を設定するヘルパー関数
         function setRadioValue(name, value) {
@@ -575,9 +595,10 @@
         }
 
         // 特定の日の記録をフォームに読み込む
-        function loadRecordForDate(date) {
-            const record = healthRecords[date] || {};
+        function loadRecordForDatetime(datetimeKey) {
+            const record = healthRecords[datetimeKey] || {};
             
+            recordUserInput.value = record.user || '';
             setRadioValue('condition', record.condition || '普通');
             if ((record.condition || '普通') === '悪い') {
                 symptomsGroup.style.display = 'block';
@@ -588,8 +609,11 @@
 
             setRadioValue('mood', record.mood || '普通');
             mealMorning.value = record.meals?.morning || '100%';
+            mealMorningContent.value = record.meals?.morningContent || '';
             mealNoon.value = record.meals?.noon || '100%';
+            mealNoonContent.value = record.meals?.noonContent || '';
             mealNight.value = record.meals?.night || '100%';
+            mealNightContent.value = record.meals?.nightContent || '';
             notesInput.value = record.notes || '';
 
             // 服薬記録の復元
@@ -616,8 +640,8 @@
         }
 
         // 日付が変更されたら記録を読み込む
-        recordDateInput.addEventListener('change', (e) => {
-            loadRecordForDate(e.target.value);
+        recordDatetimeInput.addEventListener('change', (e) => {
+            loadRecordForDatetime(e.target.value);
         });
 
         // 体調ラジオボタンの変更検知
@@ -633,13 +657,14 @@
 
         // 記録を保存する
         saveHealthBtn.addEventListener('click', () => {
-            const date = recordDateInput.value;
-            if (!date) {
-                alert('記録日を選択してください。');
+            const datetimeKey = recordDatetimeInput.value;
+            if (!datetimeKey) {
+                alert('記録日時を入力してください。');
                 return;
             }
 
             const record = {
+                user: recordUserInput.value.trim(),
                 condition: getRadioValue('condition'),
                 symptoms: getRadioValue('condition') === '悪い' ? symptomsInput.value : '',
                 mood: getRadioValue('mood'),
@@ -667,14 +692,17 @@
                 })(),
                 meals: {
                     morning: mealMorning.value,
+                    morningContent: mealMorningContent.value.trim(),
                     noon: mealNoon.value,
-                    night: mealNight.value
+                    noonContent: mealNoonContent.value.trim(),
+                    night: mealNight.value,
+                    nightContent: mealNightContent.value.trim()
                 },
                 notes: notesInput.value,
                 updatedAt: new Date().toISOString()
             };
 
-            healthRecords[date] = record;
+            healthRecords[datetimeKey] = record;
             localStorage.setItem('healthRecords', JSON.stringify(healthRecords));
 
             // 通知を表示
@@ -716,17 +744,19 @@
                 
                 // クリックでその日の記録を読み込む
                 el.addEventListener('click', () => {
-                    recordDateInput.value = date;
-                    loadRecordForDate(date);
+                    recordDatetimeInput.value = date;
+                    loadRecordForDatetime(date);
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 });
 
                 let conditionColor = record.condition === '良い' ? '#2e7d32' : (record.condition === '悪い' ? '#c62828' : '#e65100');
                 let symptomHtml = record.condition === '悪い' && record.symptoms ? `<div style="font-size: 0.85rem; color: #c62828; margin-top: 0.25rem;">症状: ${record.symptoms}</div>` : '';
                 
+                let displayDate = date.replace('T', ' '); // datetime-local format
+                
                 el.innerHTML = `
                     <div class="visit-info">
-                        <div class="visit-date">${date} <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted); float: right;">クリックして詳細を表示</span></div>
+                        <div class="visit-date">${displayDate} <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted); float: right;">入力者: ${record.user || '未設定'} | クリックして詳細を表示</span></div>
                         <div class="visit-clinic" style="margin-top: 0.5rem; color: var(--text-main);">
                             体調: <strong style="color: ${conditionColor}">${record.condition || '-'}</strong> / 
                             機嫌: <strong>${record.mood || '-'}</strong>
@@ -870,7 +900,7 @@
                 medicines = medicines.filter(m => m.id !== id);
                 localStorage.setItem('medicines', JSON.stringify(medicines));
                 renderMedicines();
-                loadRecordForDate(recordDateInput.value);
+                loadRecordForDatetime(recordDatetimeInput.value);
             }
         };
 
@@ -889,7 +919,7 @@
             localStorage.setItem('medicines', JSON.stringify(medicines));
             medNameInput.value = '';
             renderMedicines();
-            loadRecordForDate(recordDateInput.value);
+            loadRecordForDatetime(recordDatetimeInput.value);
         });
 
         function renderMedicationsLogForm() {
@@ -898,38 +928,31 @@
                 medicationsLogList.innerHTML = '<div class="empty-state" style="padding: 0; text-align: left;">お薬が登録されていません。<br>下部の「お薬管理」から追加してください。</div>';
                 return;
             }
-            medicines.forEach(med => {
-                const row = document.createElement('div');
-                row.className = 'med-log-row';
-                
-                let checksHtml = '';
-                if (med.timing === 'morning_noon_night') {
-                    checksHtml = `
-                        <label class="checkbox-label"><input type="checkbox" id="log-med-${med.id}-morning"> 朝</label>
-                        <label class="checkbox-label"><input type="checkbox" id="log-med-${med.id}-noon"> 昼</label>
-                        <label class="checkbox-label"><input type="checkbox" id="log-med-${med.id}-night"> 晩</label>
-                    `;
-                } else if (med.timing === 'morning_night') {
-                    checksHtml = `
-                        <label class="checkbox-label"><input type="checkbox" id="log-med-${med.id}-morning"> 朝</label>
-                        <label class="checkbox-label"><input type="checkbox" id="log-med-${med.id}-night"> 晩</label>
-                    `;
-                } else if (med.timing === 'once_a_day') {
-                    checksHtml = `
-                        <label class="checkbox-label"><input type="checkbox" id="log-med-${med.id}-done"> 服用済</label>
-                    `;
-                } else if (med.timing === 'before_sleep') {
-                    checksHtml = `
-                        <label class="checkbox-label"><input type="checkbox" id="log-med-${med.id}-done"> 服用済 (就寝前)</label>
-                    `;
-                }
+            
+            const morningMeds = medicines.filter(m => m.timing === 'morning_noon_night' || m.timing === 'morning_night');
+            const noonMeds = medicines.filter(m => m.timing === 'morning_noon_night');
+            const nightMeds = medicines.filter(m => m.timing === 'morning_noon_night' || m.timing === 'morning_night');
+            const otherMeds = medicines.filter(m => m.timing === 'once_a_day' || m.timing === 'before_sleep');
 
-                row.innerHTML = `
-                    <div class="med-log-name">${med.name} <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">(${timingLabels[med.timing]})</span></div>
-                    <div class="med-log-checks">${checksHtml}</div>
-                `;
-                medicationsLogList.appendChild(row);
-            });
+            let html = '';
+
+            const renderGroup = (title, meds, timeKey) => {
+                if (meds.length === 0) return '';
+                let groupHtml = `<div style="margin-bottom: 1rem;"><strong style="color: var(--primary-color);">${title}</strong><div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">`;
+                meds.forEach(med => {
+                    const idSuffix = timeKey === 'other' ? 'done' : timeKey;
+                    groupHtml += `<label class="checkbox-label" style="background: white; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;"><input type="checkbox" id="log-med-${med.id}-${idSuffix}"> ${med.name}</label>`;
+                });
+                groupHtml += '</div></div>';
+                return groupHtml;
+            };
+
+            html += renderGroup('朝の薬', morningMeds, 'morning');
+            html += renderGroup('昼の薬', noonMeds, 'noon');
+            html += renderGroup('晩の薬', nightMeds, 'night');
+            html += renderGroup('その他 (1日1回・就寝前)', otherMeds, 'other');
+
+            medicationsLogList.innerHTML = html;
         }
 
         // --- ログイン処理 ---
@@ -949,7 +972,7 @@
                 appContent.style.display = 'block';
                 // ログイン後にデータを再読み込み
                 renderMedicines();
-                loadRecordForDate(recordDateInput.value);
+                loadRecordForDatetime(recordDatetimeInput.value);
                 renderVisits();
                 renderHistory();
             } else {
