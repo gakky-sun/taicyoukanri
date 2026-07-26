@@ -509,6 +509,14 @@
                 <!-- お薬リストがここにJavaScriptで生成されます -->
             </div>
         </div>
+
+        <!-- 健康記録履歴セクション -->
+        <div class="card">
+            <div class="card-header">健康記録履歴</div>
+            <div id="history-list" style="max-height: 400px; overflow-y: auto; padding-right: 0.5rem;">
+                <!-- 履歴リストがここにJavaScriptで生成されます -->
+            </div>
+        </div>
     </div>
     </div>
 
@@ -540,6 +548,7 @@
         const visitClinicInput = document.getElementById('visit-clinic');
         const addVisitBtn = document.getElementById('add-visit-btn');
         const visitsListContainer = document.getElementById('visits-list');
+        const historyListContainer = document.getElementById('history-list');
 
         // 今日の日付をセット
         const today = new Date().toISOString().split('T')[0];
@@ -676,7 +685,58 @@
             
             // ダイアログでも通知
             alert('保存しました。');
+            
+            // 履歴リストを更新
+            renderHistory();
         });
+
+        // --- 健康記録履歴機能 ---
+
+        function renderHistory() {
+            if (!historyListContainer) return;
+            historyListContainer.innerHTML = '';
+
+            const dates = Object.keys(healthRecords).sort((a, b) => new Date(b) - new Date(a));
+
+            if (dates.length === 0) {
+                historyListContainer.innerHTML = '<div class="empty-state">記録された履歴はありません。</div>';
+                return;
+            }
+
+            dates.forEach(date => {
+                const record = healthRecords[date];
+                const el = document.createElement('div');
+                el.className = 'visit-item'; // UIスタイル再利用
+                el.style.cursor = 'pointer';
+                el.style.transition = 'background-color 0.2s';
+                
+                // ホバーエフェクト
+                el.addEventListener('mouseenter', () => el.style.backgroundColor = '#f0f0f0');
+                el.addEventListener('mouseleave', () => el.style.backgroundColor = '#fafafa');
+                
+                // クリックでその日の記録を読み込む
+                el.addEventListener('click', () => {
+                    recordDateInput.value = date;
+                    loadRecordForDate(date);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                });
+
+                let conditionColor = record.condition === '良い' ? '#2e7d32' : (record.condition === '悪い' ? '#c62828' : '#e65100');
+                let symptomHtml = record.condition === '悪い' && record.symptoms ? `<div style="font-size: 0.85rem; color: #c62828; margin-top: 0.25rem;">症状: ${record.symptoms}</div>` : '';
+                
+                el.innerHTML = `
+                    <div class="visit-info">
+                        <div class="visit-date">${date} <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted); float: right;">クリックして詳細を表示</span></div>
+                        <div class="visit-clinic" style="margin-top: 0.5rem; color: var(--text-main);">
+                            体調: <strong style="color: ${conditionColor}">${record.condition || '-'}</strong> / 
+                            機嫌: <strong>${record.mood || '-'}</strong>
+                        </div>
+                        ${symptomHtml}
+                    </div>
+                `;
+                historyListContainer.appendChild(el);
+            });
+        }
 
         // --- 通院管理機能 ---
 
@@ -891,6 +951,7 @@
                 renderMedicines();
                 loadRecordForDate(recordDateInput.value);
                 renderVisits();
+                renderHistory();
             } else {
                 loginScreen.style.display = 'flex';
                 appContent.style.display = 'none';
